@@ -1,39 +1,159 @@
+"""
+api/routes.py
+-------------
+Item management API routes for the QuickAPI FastAPI service.
+
+Implements full CRUD operations for items stored in the SQLite database.
+Routes are fully validated via Pydantic schemas and enforce type safety through `.from_orm()`.
+
+Design principles:
+- Fail-fast validation on all ORM data.
+- Observability through contextual logging.
+- Graceful handling of missing or invalid resources.
+"""
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.item import Item
 from app.models.db_models import ItemORM
 from app.models.schemas import ItemIn, ItemOut
 from app.core.logging import log
 from app.services.db import get_session
 
-router = APIRouter(prefix="/items", tags=["items"])
+router = APIRouter(prefix="/items", tags=["Items"])
+
 
 @router.post("/", response_model=ItemOut, status_code=status.HTTP_201_CREATED)
-async def create_item(payload: ItemIn, db: AsyncSession = Depends(get_session)):
-    item = ItemORM(name=payload.name, price=payload.price)
-    db.add(item)
-    await db.commit()
-    await db.refresh(item)
-    log.info("Item created", id=item.id, name=item.name, price=item.price)
-    return ItemOut(id=item.id, name=item.name, price=item.price)
+async def create_item(payload: ItemIn, db: AsyncSession = Depends(get_session)) -> ItemOut:
+    """
+    Create a new item and persist it to the database.
+
+    Args:
+        payload (ItemIn): Validated input schema containing item data.
+        db (AsyncSession): SQLAlchemy async session dependency.
+
+    Returns:
+        ItemOut: The newly created item record.
+    """
+    try:
+        item = ItemORM(name=payload.name, price=payload.price)
+        db.add(item)
+        await db.commit()
+        await db.refresh(item)
+
+        created = ItemOut.model_validate(item)
+        log.info("Item created", id=created.id, name=created.name, price=created.price)
+        return created
+
+    except Exception as e:
+        log.error("Failed to create item", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to create item")
+
+
+@router.get("/", response_model=List[ItemOut])
+async def list_items(db: AsyncSession = Depends(get_session)) -> List[ItemOut]:
+    """
+    Retrieve all items from the database.
+
+    Args:
+        db (AsyncSession): SQLAlchemy async session dependency.
+
+    Returns:
+        List[ItemOut]: All item records currently stored.
+    """
+    try:
+        res = await db.execute(select(ItemORM).order_by(ItemORM.id))
+        items = res.scalars().all()
+        return [ItemOut.model_validate(i) for i in items]
+
+    except Exception as e:
+        log.error("Failed to list items", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve items")
+
 
 @router.get("/{item_id}", response_model=ItemOut)
-async def get_item(item_id: int, db: AsyncSession = Depends(get_session)):
+async def get_item(item_id: int, db: AsyncSession = Depends(get_session)) -> ItemOut:
+    """
+    Retrieve a single item by ID.
+
+    Args:
+        item_id (int): The unique identifier of the item.
+        db (AsyncSession): SQLAlchemy async session dependency.
+
+    Raises:
+        HTTPException: 404 if the item does not exist.
+
+    Returns:
+        ItemOut: The requested item.
+    """
     res = await db.execute(select(ItemORM).where(ItemORM.id == item_id))
     obj = res.scalar_one_or_none()
+
     if not obj:
         log.warning("Item not found", id=item_id)
         raise HTTPException(status_code=404, detail="Item not found")
-    log.info("Item retrieved", id=obj.id, name=obj.name)
-    return ItemOut(id=obj.id, name=obj.name, price=obj.price)
 
-@router.get("/", response_model=List[ItemOut])
-async def list_items(db: AsyncSession = Depends(get_session)):
-    res = await db.execute(select(ItemORM).order_by(ItemORM.id))
-    items = res.scalars().all()
-    return [ItemOut(id=i.id, name=i.name, price=i.price) for i in items]
+    found = ItemOut.model_validate(obj)
+    log.info("Item retrieved", id=found.id, name=found.name)
+    return found
+
+
+@router.put("/{item_id}", response_model=ItemOut)
+async def update_item(item_id: int, payload: ItemIn, db: AsyncSession = Depends(get_session)) -> ItemOut:
+    """
+    Update an existing item by ID.
+
+    Args:
+        item_id (int): The ID of the item to update.
+        payload (ItemIn): New item data.
+        db (AsyncSession): SQLAlchemy async session dependency.
+
+    Raises:
+        HTTPException: 404 if the item does not exist.
+
+    Returns:
+        ItemOut: The updated item.
+    """
+    res = await db.execute(select(ItemORM).where(ItemORM.id == item_id))
+    obj = res.scalar_one_or_none()
+
+    if not obj:
+        log.warning("Item not found for update", id=item_id)
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    obj.name = payload.name
+    obj.price = payload.price
+    await db.commit()
+    await db.refresh(obj)
+
+    updated = ItemOut.model_validate(obj)
+    log.info("Item updated", id=updated.id, name=updated.name, price=updated.price)
+    return updated
+
+
+@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_item(item_id: int, db: AsyncSession = Depends(get_session)) -> None:
+    """
+    Delete an item by ID.
+
+    Args:
+        item_id (int): The ID of the item to delete.
+        db (AsyncSession): SQLAlchemy async session dependency.
+
+    Raises:
+        HTTPException: 404 if the item does not exist.
+    """
+    res = await db.execute(select(ItemORM).where(ItemORM.id == item_id))
+    obj = res.scalar_one_or_none()
+
+    if not obj:
+        log.warning("Item not found for deletion", id=item_id)
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    await db.delete(obj)
+    await db.commit()
+
+    log.info("Item deleted", id=item_id)
