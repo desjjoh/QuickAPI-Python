@@ -1,4 +1,4 @@
-# 🐍 QuickAPI-Python
+# 🐍 QuickAPI-FastAPI
 
 A lightweight, production-ready REST API built with **FastAPI** and **Async SQLAlchemy**.  
 This service is designed to demonstrate clean architecture, modern async Python practices,  
@@ -148,7 +148,7 @@ Tables auto-initialize on startup via the app’s lifespan context.
 ### Build and run locally
 
 ```bash
-docker build -t quickapi:latest .
+docker compose up --build
 docker run --rm -p 8000:8000 -v ${PWD}/app.db:/app/app.db quickapi:latest
 ```
 
