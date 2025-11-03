@@ -1,5 +1,5 @@
 """
-models/db_models.py
+api/items/models/db_models.py
 -------------------
 SQLAlchemy ORM model definitions for the FastAPI application.
 

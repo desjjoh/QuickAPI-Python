@@ -23,7 +23,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api.routes import router as items_router
+from app.api.items.routes import router as items_router
+from app.api.health.routes import router as health_router
+
 from app.core.config import settings
 from app.core.logging import setup_logging, log
 from app.core.middleware import RequestLoggingMiddleware
@@ -64,6 +66,7 @@ async def lifespan(_: FastAPI):
             service=settings.app_name,
             port=8000,
         )
+
         log.info(
             "Swagger docs available at http://localhost:8000/docs",
             url="http://localhost:8000/docs",
@@ -95,6 +98,7 @@ app = FastAPI(
 
 # Register routes and middleware
 app.include_router(items_router)
+app.include_router(health_router)
 app.add_middleware(RequestLoggingMiddleware)
 
 

@@ -1,5 +1,5 @@
 """
-config.py
+core/config.py
 ----------
 Centralized application configuration using Pydantic settings management.
 

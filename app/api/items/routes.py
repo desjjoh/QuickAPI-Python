@@ -1,5 +1,5 @@
 """
-api/routes.py
+api/items/routes.py
 -------------
 Item management API routes for the QuickAPI FastAPI service.
 
@@ -18,8 +18,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.db_models import ItemORM
-from app.models.schemas import ItemIn, ItemOut
+from app.api.items.models.db_models import ItemORM
+from app.api.items.models.schemas import ItemIn, ItemOut
 from app.core.logging import log
 from app.services.db import get_session
 

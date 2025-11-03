@@ -1,5 +1,5 @@
 """
-db.py
+services/db.py
 ------
 Asynchronous database engine and session management for the FastAPI service.
 
@@ -98,7 +98,7 @@ async def init_db() -> None:
         Exception:
             If table creation or engine initialization fails.
     """
-    from app.models.db_models import ItemORM  # Ensure model import triggers metadata registration
+    from app.api.items.models.db_models import ItemORM  # Ensure model import triggers metadata registration
 
     try:
         async with engine.begin() as conn:

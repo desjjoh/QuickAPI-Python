@@ -1,5 +1,5 @@
 """
-models/schemas.py
+api/items/models/schemas.py
 -----------------
 Pydantic models defining API input and output schemas for the Item resource.
 

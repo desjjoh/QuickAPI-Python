@@ -1,5 +1,5 @@
 """
-middleware.py
+core/middleware.py
 --------------
 Request lifecycle logging middleware.
 

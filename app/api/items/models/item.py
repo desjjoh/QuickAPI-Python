@@ -1,5 +1,5 @@
 """
-models/item.py
+api/items/models/item.py
 --------------
 Internal representation of an Item entity.
 

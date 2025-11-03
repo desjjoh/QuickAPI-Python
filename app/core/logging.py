@@ -1,5 +1,5 @@
 """
-logging.py
+core/logging.py
 -----------
 Centralized structured logging configuration.
 
