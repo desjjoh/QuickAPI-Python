@@ -85,4 +85,4 @@ def orm_to_item_core(orm_obj: ItemORM) -> Item:
         Item:
             Internal application representation of the item.
     """
-    return Item.from_orm(orm_obj)
+    return Item.model_validate(orm_obj)
