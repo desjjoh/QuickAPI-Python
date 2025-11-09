@@ -7,12 +7,6 @@ class Settings(BaseSettings):
     debug: bool = True
 
     class Config:
-        """
-        Pydantic settings configuration.
-
-        Specifies the source for environment variables and enables automatic
-        loading from a `.env` file when present.
-        """
         env_file = ".env"
 
 

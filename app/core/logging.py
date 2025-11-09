@@ -1,40 +1,61 @@
 import logging
+from typing import Any, Protocol
+
 import structlog
 from colorama import Fore, Style
-from app.core.config import settings
+from structlog.typing import EventDict, WrappedLogger
+
+
+class LoggerProtocol(Protocol):
+    def trace(self, event: str, **kwargs: Any) -> None: ...
+    def debug(self, event: str, **kwargs: Any) -> None: ...
+    def info(self, event: str, **kwargs: Any) -> None: ...
+    def warning(self, event: str, **kwargs: Any) -> None: ...
+    def error(self, event: str, **kwargs: Any) -> None: ...
+    def critical(self, event: str, **kwargs: Any) -> None: ...
 
 
 def setup_logging() -> None:
     logging.basicConfig(format="%(message)s", level=logging.INFO)
 
-    COLORS = {
+    for noisy in ("uvicorn", "uvicorn.error", "uvicorn.access", "fastapi"):
+        logging.getLogger(noisy).handlers = []
+        logging.getLogger(noisy).propagate = False
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+    colors = {
         "INFO": Fore.GREEN,
         "WARNING": Fore.YELLOW,
         "ERROR": Fore.RED,
-        "DEBUG": Fore.CYAN,
+        "CRITICAL": Fore.MAGENTA,
     }
 
-    def concise_renderer(_: dict, __: str, event_dict: dict) -> str:
-        timestamp = event_dict.pop("timestamp", "")
-        level = event_dict.pop("level", "").upper()
-        message = event_dict.pop("event", "")
-        extras = " ".join(f'"{k}":{repr(v)}' for k, v in event_dict.items())
+    dark_green = '\x1b[2m\x1b[32m'
 
-        color = COLORS.get(level, Fore.WHITE)
-        message_color = Fore.CYAN
+    def concise_renderer(_: WrappedLogger, __: str, event_dict: EventDict) -> str:
+        timestamp = event_dict.pop("timestamp", "")
+        level = event_dict.pop("level", "")
+        message = event_dict.pop("event", "")
+        color = colors.get(level.upper(), Fore.WHITE)
         reset = Style.RESET_ALL
 
-        return (
-            f"[{timestamp}]{reset} "
-            f"{color}{level:<5}{reset}: "
-            f"{message_color}{message}{reset} "
-            f"{Style.DIM}{{{extras}}}{reset}"
+        extras = " ".join(
+            f"{Fore.BLUE}{k}{reset}{Style.DIM}={v}{reset}"
+            for k, v in event_dict.items()
+            if v is not None
         )
+
+        line = f"{dark_green}{timestamp}{reset} {color}[{level}]{reset} {message}"
+
+        if extras:
+            line += f" {extras}{reset}"
+
+        return line
 
     structlog.configure(
         processors=[
             structlog.processors.add_log_level,
-            structlog.processors.TimeStamper(fmt="%H:%M:%S.%f", utc=False),
+            structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S.%f", utc=False),
             concise_renderer,
         ],
         wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
@@ -43,4 +64,4 @@ def setup_logging() -> None:
     )
 
 
-log = structlog.get_logger()
+log: LoggerProtocol = structlog.get_logger()

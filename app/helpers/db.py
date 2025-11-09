@@ -1,10 +1,7 @@
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-
-from app.core.config import settings
-from app.core.logging import log
-
 
 DATABASE_URL = "sqlite+aiosqlite:///./app.db"
 
@@ -16,12 +13,12 @@ class Base(DeclarativeBase):
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    echo_pool=True,
+    echo_pool=False,
     pool_size=5,
     max_overflow=10,
     pool_timeout=30,
     pool_recycle=1800,
-    future=True,    
+    future=True,
 )
 
 
@@ -39,19 +36,14 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    from app.api.items.models.db_models import ItemORM
+    from app.api.items.models.db_models import ItemORM  # type: ignore  # noqa: F401, I001
 
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-
-        log.info("Database initialized", url=str(engine.url), service=settings.app_name)
-
-    except Exception as e:
-        log.error("Database initialization failed", error=str(e))
+    except:
         raise
 
 
 async def close_db() -> None:
     await engine.dispose()
-    log.info("Database connection closed", service=settings.app_name)

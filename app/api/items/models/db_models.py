@@ -1,6 +1,7 @@
-from sqlalchemy import Integer, String, Float
+from sqlalchemy import Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
-from app.services.db import Base
+
+from app.helpers.db import Base
 
 
 class ItemORM(Base):
@@ -10,18 +11,16 @@ class ItemORM(Base):
         Integer,
         primary_key=True,
         autoincrement=True,
-        doc="Primary key identifier for the item."
+        doc="Primary key identifier for the item.",
     )
 
     name: Mapped[str] = mapped_column(
         String(120),
         index=True,
         nullable=False,
-        doc="Descriptive name of the item (max length 120)."
+        doc="Descriptive name of the item (max length 120).",
     )
 
     price: Mapped[float] = mapped_column(
-        Float,
-        nullable=False,
-        doc="Price of the item stored as a floating-point value."
+        Float, nullable=False, doc="Price of the item stored as a floating-point value."
     )

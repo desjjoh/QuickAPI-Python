@@ -1,92 +1,51 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
+import asyncio
+import signal
+import sys
+import traceback
 
-from app.api.items.routes import router as items_router
-from app.api.health.routes import router as health_router
+import uvicorn
 
 from app.core.config import settings
-from app.core.logging import setup_logging, log
-from app.core.middleware import RequestLoggingMiddleware
-from app.services.db import init_db, close_db
+from app.core.logging import log, setup_logging
+from app.helpers.db import close_db, init_db
+from app.helpers.lifecycle import LifecycleManager
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
+async def bootstrap() -> None:
+    setup_logging()
+
+    log.info("Starting QuickAPI — FastAPI...")
+    log.info(f"  ↳ Python {sys.version.split()[0]} initialized")
+
+    lifecycle = LifecycleManager()
+
+    config = uvicorn.Config(
+        "app.helpers.app:create_app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.debug,
+        factory=True,
+        access_log=False,
+    )
+
+    server = uvicorn.Server(config)
+
     try:
-        setup_logging()
         await init_db()
+        lifecycle.register("database", close_db)
+        log.info("  ↳ Database initialized")
 
-        log.info(
-            (
-                f"Server running in development mode at http://localhost:8000"
-                if settings.debug
-                else f"Server running in production mode at http://localhost:8000"
-            ),
-            service=settings.app_name,
-            port=8000,
-        )
-
-        log.info(
-            "Swagger docs available at http://localhost:8000/docs",
-            url="http://localhost:8000/docs",
-            service=settings.app_name,
-        )
-
-        yield
-
+        await server.serve()
     except Exception as e:
-        log.error("Startup failed", error=str(e))
-        raise
-
+        log.critical(
+            "Fatal error during initialization",
+            error=repr(e),
+            traceback=traceback.format_exc(),
+        )
+        sys.exit(1)
     finally:
-        try:
-            await close_db()
-            log.info("Shutdown complete", service=settings.app_name)
-        except Exception as e:
-            log.error("Error during shutdown", error=str(e))
+        await lifecycle.shutdown(signal.Signals.SIGINT)
 
 
-app = FastAPI(
-    title=settings.app_name,
-    version=settings.version,
-    lifespan=lifespan,
-)
-
-
-app.include_router(items_router)
-app.include_router(health_router)
-app.add_middleware(RequestLoggingMiddleware)
-
-
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(
-    request: Request, exc: StarletteHTTPException
-) -> JSONResponse:
-    log.warning(
-        "HTTP exception raised",
-        method=request.method,
-        path=request.url.path,
-        status=exc.status_code,
-        detail=str(exc.detail or "No detail provided"),
-    )
-
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
-
-
-@app.get("/", tags=["System"])
-async def root() -> dict[str, str]:
-    return {"message": "Hello from FastAPI!"}
-
-import signal
-
-def handle_signal(signum, frame):
-    from signal import Signals
-    log.info(f"Received {Signals(signum).name}, beginning graceful shutdown", service=settings.app_name)
-
-signal.signal(signal.SIGTERM, handle_signal)
-signal.signal(signal.SIGQUIT, handle_signal)
+if __name__ == "__main__":
+    asyncio.run(bootstrap())

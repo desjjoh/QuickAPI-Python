@@ -1,38 +1,30 @@
 import time
+from collections.abc import Awaitable, Callable
+
 from fastapi import Request, Response
-from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from app.core.logging import log
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         start_time = time.perf_counter()
 
-        try:
-            response: Response = await call_next(request)
-        except Exception as exc:
-            duration = (time.perf_counter() - start_time) * 1000
-            log.error(
-                "Unhandled exception during request",
-                method=request.method,
-                path=request.url.path,
-                error=str(exc),
-                ms=round(duration, 2),
-            )
+        method = request.method
+        path = request.url.path
 
-            return JSONResponse(
-                status_code=500,
-                content={"detail": "Internal server error"},
-            )
+        response: Response = await call_next(request)
 
-        duration = (time.perf_counter() - start_time) * 1000
-        log.info(
-            "Request completed",
-            method=request.method,
-            path=request.url.path,
-            status=response.status_code,
-            ms=round(duration, 2),
-        )
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        duration = f"{duration_ms:.2f}ms"
+
+        status = response.status_code
+        level = "error" if status >= 500 else "warning" if status >= 400 else "info"
+
+        getattr(log, level)(f"{method} {path} {status} → {duration}")
+
         return response
