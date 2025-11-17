@@ -5,8 +5,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.api.health.models.schemas import HealthOut, MetricsOut
-from app.core.config import settings
-from app.helpers.db import get_session
+from app.config.database import get_session
+from app.config.environment import settings
 
 router = APIRouter(prefix="/health", tags=["Health"])
 _start_time = time.perf_counter()

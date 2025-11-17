@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -47,3 +48,25 @@ async def init_db() -> None:
 
 async def close_db() -> None:
     await engine.dispose()
+
+
+async def db_test_query() -> bool:
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False
+
+
+class DatabaseService:
+    name = "database (sqlalchemy)"
+
+    async def start(self):
+        await init_db()
+
+    async def stop(self):
+        await close_db()
+
+    async def check(self):
+        return await db_test_query()

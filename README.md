@@ -1,10 +1,10 @@
-# 🧩 QuickAPI-FastAPI
+# QuickAPI-FastAPI
 
 A lightweight, production-ready FastAPI template focused on clean architecture, observability, and graceful lifecycle management.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```bash
 app/
@@ -33,7 +33,7 @@ app/
 
 ---
 
-## ⚙️ Features
+## Features
 
 - **FastAPI** powered async API with modular route architecture
 - **SQLite** via async SQLAlchemy for persistence
@@ -45,7 +45,7 @@ app/
 
 ---
 
-## 🚀 Running the Application
+## Running the Application
 
 ### Local Development
 
@@ -67,15 +67,15 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 docker compose up --build
 ```
 
-The API will be available at  
+The API will be available at
 **<http://localhost:8000>**
 
-Swagger documentation:  
+Swagger documentation:
 **<http://localhost:8000/docs>**
 
 ---
 
-## 🩺 Health & Monitoring
+## Health & Monitoring
 
 | Endpoint        | Description                            |
 | --------------- | -------------------------------------- |
@@ -84,7 +84,7 @@ Swagger documentation:
 
 ---
 
-## 🧰 Environment Variables
+## Environment Variables
 
 | Variable       | Default                        | Description                            |
 | -------------- | ------------------------------ | -------------------------------------- |
@@ -94,7 +94,7 @@ Swagger documentation:
 
 ---
 
-## 🧩 Docker Compose Overview
+## Docker Compose Overview
 
 ```yaml
 services:
@@ -120,7 +120,7 @@ services:
 
 ---
 
-## 🧠 Design Principles
+## Design Principles
 
 - **Fail-fast validation** using Pydantic schemas
 - **Observable behavior** through contextual, structured logs

@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.core.logging import log
+from app.config.logging import log
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):

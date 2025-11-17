@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.items.models.db_models import ItemORM
 from app.api.items.models.schemas import ItemIn, ItemOut
-from app.helpers.db import get_session
+from app.config.database import get_session
 
 router = APIRouter(prefix="/items", tags=["Items"])
 
