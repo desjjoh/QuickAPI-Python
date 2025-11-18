@@ -43,16 +43,23 @@ def concise_renderer(_: WrappedLogger, __: str, event_dict: EventDict) -> str:
     timestamp = event_dict.pop("timestamp", "")[:-3]
     level = event_dict.pop("level", "")
     message = event_dict.pop("event", "")
+    request_id = event_dict.pop("request_id", None)
 
     color = colors.get(level.upper(), Fore.WHITE)
 
-    line = f"{dark_green}{timestamp}{reset} {color}[{level.ljust(8)}]{reset} {message}"
+    line = f"{dark_green}{timestamp}{reset} {color}[{level.ljust(8)}]{reset}"
+
+    if request_id:
+        line += f" {Fore.MAGENTA}[{request_id}]{reset}"
+
+    line += f" {message}"
 
     return line
 
 
 structlog.configure(
     processors=[
+        structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S.%f", utc=False),
         concise_renderer,
@@ -63,4 +70,10 @@ structlog.configure(
 )
 
 
-log: LoggerProtocol = structlog.get_logger()
+class _LogProxy:
+    def __getattribute__(self, name: str):
+        logger = structlog.get_logger()
+        return getattr(logger, name)
+
+
+log = _LogProxy()

@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.items.models.db_models import ItemORM
-from app.api.items.models.schemas import ItemIn, ItemOut
 from app.config.database import get_session
+from app.database.db_models import ItemORM
+from app.models.items import ItemIn, ItemOut
 
-router = APIRouter(prefix="/items", tags=["Items"])
+router = APIRouter()
 
 
 @router.post("/", response_model=ItemOut, status_code=status.HTTP_201_CREATED)

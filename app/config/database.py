@@ -37,7 +37,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    from app.api.items.models.db_models import ItemORM  # type: ignore  # noqa: F401, I001
+    from app.database.db_models import ItemORM  # type: ignore  # noqa: F401
 
     try:
         async with engine.begin() as conn:

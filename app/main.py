@@ -20,7 +20,9 @@ async def bootstrap() -> None:
         )
 
     except Exception:
-        print(f"{red}❌ {bold}Fatal error during server initialization — forcing exit")
+        print(
+            f"{red}❌ {bold}Fatal error during server initialization — forcing exit\n"
+        )
         sys.exit(1)
 
 
@@ -28,5 +30,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(bootstrap())
     except Exception:
-        print(f"{red}❌ {bold}Fatal error during application bootstrap — forcing exit")
+        print(
+            f"{red}❌ {bold}Fatal error during application bootstrap — forcing exit\n"
+        )
         sys.exit(1)
