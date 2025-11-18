@@ -29,7 +29,7 @@ class RequestLoggingASGIMiddleware:
                 duration = (time.perf_counter() - start) * 1000
                 duration_s = f"{duration:.2f}ms"
 
-                method_padded = method.ljust(7)
+                method_padded = str(method).ljust(7)
                 status_padded = str(status).ljust(3)
                 path_short = shorten_path(path, 30)
                 path_padded = path_short.ljust(32)
