@@ -70,7 +70,7 @@ async def ready_probe() -> ReadyResponse:
     if not app_ready and services_healthy:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Application not ready",
+            detail="Application not ready.",
         )
 
     return ReadyResponse(ready=True)
@@ -111,9 +111,9 @@ async def system() -> SystemResponse:
     )
 
     return SystemResponse(
-        uptime_s=round(time.perf_counter() - _start_time, 3),
+        uptime=round(time.perf_counter() - _start_time, 3),
         timestamp=int(time.time() * 1000),
-        event_loop_lag_ms=round(event_loop_lag, 3),
+        event_loop_lag=round(event_loop_lag, 3),
         db=db_status,
     )
 

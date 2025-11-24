@@ -28,8 +28,29 @@ async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
-    message = ", ".join(err["msg"] for err in exc.errors())
     status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+
+    parts: list[str] = []
+
+    for error in exc.errors():
+        loc = error["loc"]
+        msg = error["msg"]
+
+        if loc == ("body",) or (
+            len(loc) == 2 and loc[0] == "body" and isinstance(loc[1], (int, str))
+        ):
+            parts.append(f"Request body → {msg}")
+            continue
+
+        loc_parts = [str(p) for p in loc if p not in ("body", None, "", ())]
+        field_path = ".".join(loc_parts)
+
+        if field_path:
+            parts.append(f"{field_path} → {msg}")
+        else:
+            parts.append(msg)
+
+    message = "Validation failed: " + "; ".join(parts) + '.'
 
     return JSONResponse(
         status_code=status_code,
@@ -51,7 +72,7 @@ async def unhandled_exception_handler(
         status_code=status_code,
         content={
             "status": status_code,
-            "message": "Internal server error",
+            "message": "Internal server error.",
             "timestamp": _now(),
         },
     )

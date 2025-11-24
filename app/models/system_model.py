@@ -74,7 +74,7 @@ class InfoResponse(BaseModel):
 
 
 class SystemResponse(BaseModel):
-    uptime_s: float = Field(
+    uptime: float = Field(
         ...,
         description="Application uptime in seconds.",
         examples=[123.45],
@@ -86,7 +86,7 @@ class SystemResponse(BaseModel):
         examples=[1_732_133_579_791],
     )
 
-    event_loop_lag_ms: float = Field(
+    event_loop_lag: float = Field(
         ...,
         description="Approximate event loop lag in milliseconds.",
         examples=[3.21],

@@ -9,6 +9,7 @@ class BaseResponse(BaseModel):
         ...,
         min_length=16,
         max_length=16,
+        pattern=r"^[0-9a-f]{16}$",
         description="Globally unique identifier of the entity (16-character hex).",
         examples=[uuid4().hex[:16]],
     )

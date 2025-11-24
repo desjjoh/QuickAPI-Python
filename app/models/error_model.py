@@ -7,7 +7,7 @@ class ErrorResponse(BaseModel):
     message: str = Field(
         ...,
         description="Human-readable error message",
-        examples=["Application not ready"],
+        examples=["Application not ready."],
     )
 
     timestamp: str = Field(

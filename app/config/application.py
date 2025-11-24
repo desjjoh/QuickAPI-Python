@@ -9,6 +9,7 @@ from app.config.database import DatabaseService
 from app.config.environment import settings
 from app.config.logging import log
 from app.controllers.system_controller import router as system_router
+from app.docs.openapi import configure_custom_validation_openapi
 from app.handlers.exception_handler import (
     http_exception_handler,
     unhandled_exception_handler,
@@ -70,6 +71,8 @@ def create_app() -> FastAPI:
 
     app.include_router(system_router)
     app.include_router(api_router)
+
+    configure_custom_validation_openapi(app)
 
     return app
 
