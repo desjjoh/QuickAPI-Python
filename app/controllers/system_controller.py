@@ -17,8 +17,8 @@ from app.models.system_model import (
     SystemResponse,
 )
 
-router = APIRouter(tags=["System"])
-_start_time = time.perf_counter()
+router: APIRouter = APIRouter(tags=["System"])
+_start_time: float = time.perf_counter()
 
 
 ## GET /
@@ -42,9 +42,9 @@ async def root() -> RootResponse:
     status_code=status.HTTP_200_OK,
 )
 async def live_probe() -> HealthResponse:
-    alive = lifecycle.is_alive()
-    timestamp = datetime.now(UTC).isoformat()
-    uptime = round(time.perf_counter() - _start_time, 3)
+    alive: bool = lifecycle.is_alive()
+    timestamp: str = datetime.now(UTC).isoformat()
+    uptime: float = round(time.perf_counter() - _start_time, 3)
 
     return HealthResponse(alive=alive, uptime=uptime, timestamp=timestamp)
 
@@ -64,8 +64,8 @@ async def live_probe() -> HealthResponse:
     },
 )
 async def ready_probe() -> ReadyResponse:
-    app_ready = lifecycle.is_ready()
-    services_healthy = await lifecycle.are_all_services_healthy()
+    app_ready: bool = lifecycle.is_ready()
+    services_healthy: bool = await lifecycle.are_all_services_healthy()
 
     if not app_ready and services_healthy:
         raise HTTPException(
@@ -103,8 +103,8 @@ async def info() -> InfoResponse:
     status_code=status.HTTP_200_OK,
 )
 async def system() -> SystemResponse:
-    event_loop_lag = await lifecycle.get_event_loop_lag(samples=1)
-    services_healthy = await lifecycle.are_all_services_healthy()
+    event_loop_lag: float = await lifecycle.get_event_loop_lag(samples=1)
+    services_healthy: bool = await lifecycle.are_all_services_healthy()
 
     db_status: Literal["connected", "disconnected"] = (
         "connected" if services_healthy else "disconnected"

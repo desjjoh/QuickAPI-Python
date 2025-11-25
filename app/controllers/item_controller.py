@@ -1,7 +1,11 @@
+from collections.abc import Sequence
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.database import get_session
+from app.database.entities.item_orm import ItemORM
 from app.database.repositories.item_repo import repo
 from app.models.error_model import ErrorResponse
 from app.models.item_model import (
@@ -11,7 +15,7 @@ from app.models.item_model import (
 )
 from app.models.parameters_model import HexId
 
-router = APIRouter()
+router: APIRouter = APIRouter()
 
 
 ## POST /
@@ -25,7 +29,7 @@ router = APIRouter()
 async def create(
     payload: ItemBase, db: AsyncSession = Depends(get_session)
 ) -> ItemResponse:
-    created = await repo.create(db, item_in=payload)
+    created: ItemORM = await repo.create(db, item_in=payload)
 
     return ItemResponse.model_validate(created)
 
@@ -39,7 +43,7 @@ async def create(
     status_code=status.HTTP_200_OK,
 )
 async def get_all(db: AsyncSession = Depends(get_session)) -> list[ItemResponse]:
-    items = await repo.get_all(db)
+    items: Sequence[ItemORM] = await repo.get_all(db)
 
     return [ItemResponse.model_validate(item) for item in items]
 
@@ -59,7 +63,7 @@ async def get_all(db: AsyncSession = Depends(get_session)) -> list[ItemResponse]
     },
 )
 async def get(id: HexId, db: AsyncSession = Depends(get_session)) -> ItemResponse:
-    found = await repo.get_by_id(db, id)
+    found: ItemORM | None = await repo.get_by_id(db, id)
 
     if not found:
         raise HTTPException(
@@ -87,9 +91,9 @@ async def get(id: HexId, db: AsyncSession = Depends(get_session)) -> ItemRespons
 async def update(
     id: HexId, payload: UpdateItemRequest, db: AsyncSession = Depends(get_session)
 ) -> ItemResponse:
-    update_data = payload.model_dump(exclude_unset=True)
+    update_data: dict[str, Any] = payload.model_dump(exclude_unset=True)
 
-    obj = await repo.get_by_id(db, id)
+    obj: ItemORM | None = await repo.get_by_id(db, id)
 
     if not obj:
         raise HTTPException(
@@ -97,7 +101,7 @@ async def update(
             detail=f"Resource with ID '{id}' not found.",
         )
 
-    updated = await repo.update(db, obj, update_data)
+    updated: ItemORM = await repo.update(db, obj, update_data)
 
     return ItemResponse.model_validate(updated)
 
@@ -119,9 +123,9 @@ async def update(
 async def replace(
     id: HexId, payload: ItemBase, db: AsyncSession = Depends(get_session)
 ) -> ItemResponse:
-    update_data = payload.model_dump()
+    update_data: dict[str, Any] = payload.model_dump(exclude_unset=False)
 
-    obj = await repo.get_by_id(db, id)
+    obj: ItemORM | None = await repo.get_by_id(db, id)
 
     if not obj:
         raise HTTPException(
@@ -129,7 +133,7 @@ async def replace(
             detail=f"Resource with ID '{id}' not found.",
         )
 
-    updated = await repo.update(db, obj, update_data)
+    updated: ItemORM = await repo.update(db, obj, update_data)
 
     return ItemResponse.model_validate(updated)
 
@@ -148,8 +152,8 @@ async def replace(
         },
     },
 )
-async def delete(id: HexId, db: AsyncSession = Depends(get_session)) -> None:
-    obj = await repo.get_by_id(db, id)
+async def delete(id: HexId, db: AsyncSession = Depends(get_session)) -> ItemResponse:
+    obj: ItemORM | None = await repo.get_by_id(db, id)
 
     if not obj:
         raise HTTPException(
@@ -157,5 +161,6 @@ async def delete(id: HexId, db: AsyncSession = Depends(get_session)) -> None:
             detail=f"Resource with ID '{id}' not found.",
         )
 
-    await db.delete(obj)
-    await db.commit()
+    removed: ItemORM = await repo.delete(db, obj)
+
+    return ItemResponse.model_validate(removed)

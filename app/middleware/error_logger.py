@@ -12,9 +12,9 @@ class ErrorLoggingASGIMiddleware:
             await self.app(scope, receive, send)
 
         except Exception as exc:
-            error_type = exc.__class__.__name__
-            error_msg = getattr(exc, "msg", None) or str(exc).split("\n")[0]
+            error_type: str = exc.__class__.__name__
+            error_msg: str = getattr(exc, "msg", None) or str(exc).split("\n")[0]
 
-            log.error(f"{error_type}: {error_msg}")
+            log.error(f"{error_type} — {error_msg}")
 
             raise

@@ -28,13 +28,12 @@ async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
-    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
-
+    status_code: int = status.HTTP_422_UNPROCESSABLE_CONTENT
     parts: list[str] = []
 
     for error in exc.errors():
         loc = error["loc"]
-        msg = error["msg"]
+        msg: str = error["msg"]
 
         if loc == ("body",) or (
             len(loc) == 2 and loc[0] == "body" and isinstance(loc[1], (int, str))
@@ -42,15 +41,15 @@ async def validation_exception_handler(
             parts.append(f"Request body → {msg}")
             continue
 
-        loc_parts = [str(p) for p in loc if p not in ("body", None, "", ())]
-        field_path = ".".join(loc_parts)
+        loc_parts: list[str] = [str(p) for p in loc if p not in ("body", None, "", ())]
+        field_path: str = ".".join(loc_parts)
 
         if field_path:
             parts.append(f"{field_path} → {msg}")
         else:
             parts.append(msg)
 
-    message = "Validation failed: " + "; ".join(parts) + '.'
+    message: str = "Validation failed: " + "; ".join(parts) + '.'
 
     return JSONResponse(
         status_code=status_code,

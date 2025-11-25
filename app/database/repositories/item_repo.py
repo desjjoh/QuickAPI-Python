@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import Result, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.entities.item_orm import ItemORM
@@ -11,17 +11,19 @@ from app.models.parameters_model import HexId
 
 class ItemRepository:
     async def get_all(self, session: AsyncSession) -> Sequence[ItemORM]:
-        result = await session.execute(select(ItemORM))
+        result: Result[tuple[ItemORM]] = await session.execute(select(ItemORM))
 
         return result.scalars().all()
 
     async def get_by_id(self, session: AsyncSession, id: HexId) -> ItemORM | None:
-        result = await session.execute(select(ItemORM).where(ItemORM.id == id))
+        result: Result[tuple[ItemORM]] = await session.execute(
+            select(ItemORM).where(ItemORM.id == id)
+        )
 
         return result.scalar_one_or_none()
 
     async def create(self, session: AsyncSession, *, item_in: ItemBase) -> ItemORM:
-        item = ItemORM(**item_in.model_dump())
+        item: ItemORM = ItemORM(**item_in.model_dump())
         session.add(item)
 
         await session.commit()
@@ -54,4 +56,4 @@ class ItemRepository:
         return obj
 
 
-repo = ItemRepository()
+repo: ItemRepository = ItemRepository()

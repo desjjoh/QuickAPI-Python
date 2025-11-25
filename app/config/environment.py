@@ -2,6 +2,7 @@ import sys
 from typing import Literal, NoReturn
 
 from pydantic import Field, ValidationError
+from pydantic_core import ErrorDetails
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 SEMVER_REGEX = r"^\d+\.\d+\.\d+$"
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
 def load_settings() -> Settings:
     try:
         return Settings()  # type: ignore
+
     except ValidationError as err:
         print_env_error_and_exit(err)
         sys.exit(1)
@@ -43,17 +45,19 @@ def print_env_error_and_exit(err: ValidationError) -> NoReturn:
     yellow = "\033[93m"
     dark_green = '\x1b[2m\x1b[32m'
 
-    errors = err.errors()
+    errors: list[ErrorDetails] = err.errors()
 
     print(
         f"\n{red}❌ {bold}Environment validation failed! ({len(errors)} issues){reset}\n"
     )
 
-    loc_names = [".".join(str(x) for x in issue.get("loc", [])) for issue in errors]
-    max_len = max(len(name) for name in loc_names)
+    loc_names: list[str] = [
+        ".".join(str(x) for x in issue.get("loc", [])) for issue in errors
+    ]
+    max_len: int = max(len(name) for name in loc_names)
 
     for issue, name in zip(errors, loc_names):
-        msg = issue.get("msg", "Invalid value")
+        msg: str = issue.get("msg", "Invalid value")
 
         if issue.get("type") == "missing" or "input" not in issue:
             received_repr = "undefined"

@@ -5,7 +5,7 @@ import structlog
 from colorama import Fore, Style
 from structlog.typing import EventDict, WrappedLogger
 
-colors = {
+colors: dict[str, str] = {
     "DEBUG": Fore.CYAN,
     "INFO": Fore.GREEN,
     "WARNING": Fore.YELLOW,
@@ -14,7 +14,7 @@ colors = {
 }
 
 dark_green = '\x1b[2m\x1b[32m'
-reset = Style.RESET_ALL
+reset: str = Style.RESET_ALL
 
 
 @runtime_checkable
@@ -41,14 +41,14 @@ for noisy in (
 
 
 def concise_renderer(_: WrappedLogger, __: str, event_dict: EventDict) -> str:
-    timestamp = event_dict.pop("timestamp", "")[:-3]
-    level = event_dict.pop("level", "")
-    message = event_dict.pop("event", "")
-    request_id = event_dict.pop("request_id", None)
+    timestamp: str = event_dict.pop("timestamp", "")[:-3]
+    level: str = event_dict.pop("level", "")
+    message: str = event_dict.pop("event", "")
+    request_id: str | None = event_dict.pop("request_id", None)
 
-    color = colors.get(level.upper(), Fore.WHITE)
+    color: str = colors.get(level.upper(), Fore.WHITE)
 
-    line = f"{dark_green}{timestamp}{reset} {color}[{level.ljust(8)}]{reset}"
+    line: str = f"{dark_green}{timestamp}{reset} {color}[{level.ljust(8)}]{reset}"
 
     if request_id:
         line += f" {Fore.MAGENTA}[{request_id}]{reset}"

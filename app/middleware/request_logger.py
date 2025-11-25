@@ -22,7 +22,7 @@ class RequestLoggingASGIMiddleware:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
-        start = time.perf_counter()
+        start: float = time.perf_counter()
 
         method = scope.get("method", "-")
         path = scope.get("path", "-")
@@ -41,16 +41,16 @@ class RequestLoggingASGIMiddleware:
             await self.app(scope, receive, send_wrapper)
 
         finally:
-            duration = (time.perf_counter() - start) * 1000
-            duration_s = f"{duration:.2f}ms"
+            duration: float = (time.perf_counter() - start) * 1000
+            duration_s: str = f"{duration:.2f}ms"
 
-            status_code = status if status is not None else 500
+            status_code: int = status if status is not None else 500
 
-            status_padded = str(status_code).ljust(3)
-            method_padded = method.ljust(7)
-            path_padded = shorten_path(path, 30).ljust(32)
+            status_padded: str = str(status_code).ljust(3)
+            method_padded: str = method.ljust(7)
+            path_padded: str = shorten_path(path, 30).ljust(32)
 
-            msg = f"{status_padded} {method_padded} {path_padded} {duration_s}"
+            msg: str = f"{status_padded} {method_padded} {path_padded} {duration_s}"
 
             level = (
                 "error"

@@ -78,12 +78,8 @@ class LifecycleHandler:
         log.debug('Starting services…')
 
         for svc in self._services:
-            try:
-                await svc.start()
-                log.debug(f"Service started → {svc.name}")
-            except Exception:
-                log.error("Service failed to start")
-                raise
+            await svc.start()
+            log.debug(f"Service started → {svc.name}")
 
         self._startup_completed = True
 
@@ -103,8 +99,12 @@ class LifecycleHandler:
             try:
                 await svc.stop()
                 log.debug(f"Service stopped ← {svc.name}")
-            except Exception:
-                log.warning("Failed to stop service cleanly")
+            except Exception as exc:
+                error_type = exc.__class__.__name__
+                error_msg = getattr(exc, "msg", None) or str(exc).split("\n")[0]
+                log.error(f"{error_type} — {error_msg}")
+
+                log.warning(f"Failed to stop service ← {svc.name}")
 
         duration = (time.perf_counter() - start) * 1000
         log.debug(f"Shutdown completed in {duration:.2f}ms")
