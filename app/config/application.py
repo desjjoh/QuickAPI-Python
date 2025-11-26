@@ -21,6 +21,7 @@ from app.middleware.error_logger import ErrorLoggingASGIMiddleware
 from app.middleware.rate_limiter import RateLimitASGIMiddleware
 from app.middleware.request_cleanup import RequestCleanupASGIMiddleware
 from app.middleware.request_context import RequestContextASGIMiddleware
+from app.middleware.request_limiter import RequestSizeLimitASGIMiddleware
 from app.middleware.request_logger import RequestLoggingASGIMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.routes.api_routes import router as api_router
@@ -76,8 +77,11 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(RateLimitASGIMiddleware, limiter=limiter)
+    app.add_middleware(RequestSizeLimitASGIMiddleware, max_body_bytes=1_048_576)
     app.add_middleware(RequestContextASGIMiddleware)
+
     app.add_middleware(ErrorLoggingASGIMiddleware)
+
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestLoggingASGIMiddleware)
     app.add_middleware(RequestCleanupASGIMiddleware)

@@ -21,8 +21,10 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
+
     except Exception:
         print(
             f"{red}❌ {bold}Fatal error during server initialization — forcing exit\n"
         )
+
         sys.exit(1)

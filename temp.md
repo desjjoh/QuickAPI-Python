@@ -79,3 +79,61 @@
    Path parameter regex validation for HexId
 
    Null/Unset rules for PATCH/PUT (we finished this)
+
+## ⭐ Why it's not an 8–10 yet (and that’s okay!)
+
+These missing pieces are what separate production-ready from battle-tested enterprise.
+
+- 7 → 8 requires:
+
+  CORS policies
+
+  Rate limiting
+
+  API authentication (JWT, API keys)
+
+  Role/permission examples
+
+  Exception-safe database disposal
+
+  Environment-based feature toggles
+
+  Response caching hooks
+
+- 8 → 9 requires:
+
+  Multi-environment config (dev/stage/prod)
+
+  Metrics + tracing (Prometheus, OpenTelemetry)
+
+  Health endpoints that check subsystems
+
+  Request logging redaction logic
+
+  Background job framework integration (RQ/BullMQ/Celery)
+
+  Configurable CORS, CSP, and Permissions-Policy
+
+- 9 → 10 is "Fortune 500 / FAANG quality":
+
+  Service mesh support (mTLS, service identity)
+
+  Distributed tracing
+
+  Runtime failover, retries, circuit breakers
+
+  Tenant-aware logging
+
+  Cloud provider hardening (S3 presigned examples, RDS IAM auth)
+
+  SQL connection pooling diagnostics
+
+  Unit tests + integration tests + contract tests
+
+  Load testing profiles
+
+  Blue/green deploy compatibility
+
+  Onion architecture / hexagonal injection pattern
+
+  Nobody hits 10 without a full-stack DevOps pipeline and a security team.
