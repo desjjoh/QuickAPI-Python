@@ -1,7 +1,12 @@
 from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase
 
 DATABASE_URL = "sqlite+aiosqlite:///./app.db"
@@ -11,7 +16,7 @@ class Base(DeclarativeBase):
     pass
 
 
-engine = create_async_engine(
+engine: AsyncEngine = create_async_engine(
     DATABASE_URL,
     echo=False,
     echo_pool=False,
@@ -23,7 +28,7 @@ engine = create_async_engine(
 )
 
 
-SessionLocal = async_sessionmaker(
+SessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
@@ -42,6 +47,7 @@ async def init_db() -> None:
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
     except:
         raise
 
@@ -54,13 +60,15 @@ async def db_test_query() -> bool:
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
+
         return True
+
     except Exception:
         return False
 
 
 class DatabaseService:
-    name = "database (sqlalchemy)"
+    name: str = "database (sqlalchemy)"
 
     async def start(self):
         await init_db()
