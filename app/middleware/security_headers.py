@@ -1,33 +1,50 @@
-from collections.abc import MutableSequence
+from __future__ import annotations
+
+from collections.abc import Iterable
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class SecurityHeadersMiddleware:
+
     def __init__(self, app: ASGIApp):
         self.app = app
 
+        self.headers: Iterable[tuple[bytes, bytes]] = [
+            (b"x-frame-options", b"DENY"),
+            (b"x-content-type-options", b"nosniff"),
+            (b"referrer-policy", b"strict-origin-when-cross-origin"),
+            (b"x-xss-protection", b"0"),
+            (
+                b"strict-transport-security",
+                b"max-age=63072000; includeSubDomains; preload",
+            ),
+            (b"cross-origin-opener-policy", b"same-origin"),
+            (b"cross-origin-embedder-policy", b"require-corp"),
+            (b"cross-origin-resource-policy", b"same-origin"),
+            (b"permissions-policy", b"geolocation=(), microphone=(), camera=()"),
+            (
+                b"content-security-policy",
+                b"default-src 'self'; "
+                b"img-src 'self' data:; "
+                b"object-src 'none'; "
+                b"frame-ancestors 'none'; "
+                b"base-uri 'self'",
+            ),
+        ]
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
 
-        async def send_wrapper(message: Message):
+            return
+
+        async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
-                headers: MutableSequence[tuple[bytes, bytes]] = message.setdefault(
-                    "headers", []
-                )
+                raw_headers = message.setdefault("headers", [])
 
-                def add(name: str, value: str):
-                    headers.append((name.encode("latin-1"), value.encode("latin-1")))
-
-                add("X-Content-Type-Options", "nosniff")
-                add("X-Frame-Options", "DENY")
-                add("Referrer-Policy", "strict-origin-when-cross-origin")
-                add("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-                add("X-XSS-Protection", "0")
-
-                add(
-                    "Strict-Transport-Security",
-                    "max-age=63072000; includeSubDomains; preload",
-                )
+                for key, value in self.headers:
+                    raw_headers.append((key, value))
 
             await send(message)
 

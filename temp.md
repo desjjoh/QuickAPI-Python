@@ -114,29 +114,7 @@ These missing pieces are what separate production-ready from battle-tested enter
 
   Configurable CORS, CSP, and Permissions-Policy
 
-- 9 → 10 is "Fortune 500 / FAANG quality":
-
-  Service mesh support (mTLS, service identity)
-
-  Distributed tracing
-
-  Runtime failover, retries, circuit breakers
-
-  Tenant-aware logging
-
-  Cloud provider hardening (S3 presigned examples, RDS IAM auth)
-
-  SQL connection pooling diagnostics
-
-  Unit tests + integration tests + contract tests
-
-  Load testing profiles
-
-  Blue/green deploy compatibility
-
-  Onion architecture / hexagonal injection pattern
-
-  Nobody hits 10 without a full-stack DevOps pipeline and a security team.
+.
 
 ## More
 
@@ -153,35 +131,3 @@ These missing pieces are what separate production-ready from battle-tested enter
    background task draining
 
    start/stop verifiers
-
-5. Suppress internal errors
-
-   Your custom error handler covers it, but we can:
-
-   audit error envelope
-
-   ensure no tracebacks in ANY environment
-
-   sanitize any exception types not covered
-
-6. Security Headers (big upgrade)
-
-   Your current middleware likely needs:
-
-   Permissions-Policy
-
-   Referrer-Policy
-
-   Cross-Origin-Resource-Policy
-
-   Cross-Origin-Embedder-Policy
-
-   Cross-Origin-Opener-Policy
-
-   CSP skeleton (strict, no inline scripts)
-
-   This is the biggest remaining security layer.
-
-7. Timeouts (ASGI-level)
-
-   Protects against slowloris, partial body attacks, stuck clients.

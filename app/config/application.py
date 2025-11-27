@@ -34,6 +34,7 @@ from app.middleware.request_header_limit import (
 )
 from app.middleware.request_header_sanitization import HeaderSanitizationASGIMiddleware
 from app.middleware.request_logger import RequestLoggingASGIMiddleware
+from app.middleware.request_timeout import RequestTimeoutASGIMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.routes.api_routes import router as api_router
 
@@ -82,14 +83,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    apply_cors(
-        app,
-        CORSConfig(
-            allow_all=True,
-            origins=[],
-        ),
-    )
-
+    app.add_middleware(RequestTimeoutASGIMiddleware)
     app.add_middleware(
         RateLimitASGIMiddleware,
         limiter=RateLimiter(
@@ -132,6 +126,15 @@ def create_app() -> FastAPI:
     app.add_middleware(ErrorLoggingASGIMiddleware)
 
     app.add_middleware(SecurityHeadersMiddleware)
+
+    apply_cors(
+        app,
+        CORSConfig(
+            allow_all=True,
+            origins=[],
+        ),
+    )
+
     app.add_middleware(RequestLoggingASGIMiddleware)
     app.add_middleware(RequestCleanupASGIMiddleware)
 
