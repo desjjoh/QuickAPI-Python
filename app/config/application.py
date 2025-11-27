@@ -124,7 +124,6 @@ def create_app() -> FastAPI:
 
     app.add_middleware(RequestContextASGIMiddleware)
     app.add_middleware(ErrorLoggingASGIMiddleware)
-
     app.add_middleware(SecurityHeadersMiddleware)
 
     apply_cors(

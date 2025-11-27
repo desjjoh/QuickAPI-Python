@@ -5,12 +5,21 @@ import structlog
 from colorama import Fore, Style
 from structlog.typing import EventDict, WrappedLogger
 
+from app.config.environment import settings
+
 colors: dict[str, str] = {
     "DEBUG": Fore.CYAN,
     "INFO": Fore.GREEN,
     "WARNING": Fore.YELLOW,
     "ERROR": Fore.RED,
     "CRITICAL": Fore.MAGENTA,
+}
+
+LOG_LEVEL_MAP: dict[str, int] = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARN": logging.WARNING,
+    "ERROR": logging.ERROR,
 }
 
 dark_green = '\x1b[2m\x1b[32m'
@@ -65,7 +74,9 @@ structlog.configure(
         structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S.%f", utc=False),
         concise_renderer,
     ],
-    wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG),
+    wrapper_class=structlog.make_filtering_bound_logger(
+        LOG_LEVEL_MAP.get(settings.LOG_LEVEL, logging.INFO)
+    ),
     logger_factory=structlog.stdlib.LoggerFactory(),
     cache_logger_on_first_use=True,
 )
