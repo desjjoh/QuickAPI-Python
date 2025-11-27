@@ -17,7 +17,10 @@ from app.handlers.exception_handler import (
     validation_exception_handler,
 )
 from app.handlers.lifecycle_handler import lifecycle
+from app.middleware.apply_cors import CORSConfig, apply_cors
+from app.middleware.content_type_enforcement import ContentTypeEnforcementASGIMiddleware
 from app.middleware.error_logger import ErrorLoggingASGIMiddleware
+from app.middleware.method_whitelist import MethodWhitelistASGIMiddleware
 from app.middleware.rate_limit import RateLimitASGIMiddleware
 from app.middleware.request_body_limit import (
     BodyLimit,
@@ -25,6 +28,11 @@ from app.middleware.request_body_limit import (
 )
 from app.middleware.request_cleanup import RequestCleanupASGIMiddleware
 from app.middleware.request_context import RequestContextASGIMiddleware
+from app.middleware.request_header_limit import (
+    HeaderLimits,
+    RequestHeaderLimitASGIMiddleware,
+)
+from app.middleware.request_header_sanitization import HeaderSanitizationASGIMiddleware
 from app.middleware.request_logger import RequestLoggingASGIMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.routes.api_routes import router as api_router
@@ -74,8 +82,13 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    app.add_middleware(RequestContextASGIMiddleware)
-    app.add_middleware(ErrorLoggingASGIMiddleware)
+    apply_cors(
+        app,
+        CORSConfig(
+            allow_all=True,
+            origins=[],
+        ),
+    )
 
     app.add_middleware(
         RateLimitASGIMiddleware,
@@ -88,10 +101,35 @@ def create_app() -> FastAPI:
     )
 
     app.add_middleware(
+        MethodWhitelistASGIMiddleware,
+        allowed_methods={"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+    )
+
+    app.add_middleware(
+        RequestHeaderLimitASGIMiddleware,
+        limits=HeaderLimits(
+            max_header_count=100,
+            max_single_header_bytes=4096,
+            max_total_header_bytes=8192,
+            allow_chunked=False,
+        ),
+    )
+
+    app.add_middleware(HeaderSanitizationASGIMiddleware)
+    app.add_middleware(
+        ContentTypeEnforcementASGIMiddleware,
+        default_allowed={"application/json"},
+        route_overrides=[],
+    )
+
+    app.add_middleware(
         RequestBodyLimitASGIMiddleware,
         default_limit=BodyLimit(max_body_bytes=1_048_576),
         route_overrides=[],
     )
+
+    app.add_middleware(RequestContextASGIMiddleware)
+    app.add_middleware(ErrorLoggingASGIMiddleware)
 
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestLoggingASGIMiddleware)

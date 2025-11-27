@@ -137,3 +137,51 @@ These missing pieces are what separate production-ready from battle-tested enter
   Onion architecture / hexagonal injection pattern
 
   Nobody hits 10 without a full-stack DevOps pipeline and a security team.
+
+## More
+
+4. Process Safety / Lifecycle Hardening
+
+   You're already strong here, but we can refine:
+
+   graceful shutdown
+
+   worker shutdown hooks
+
+   DB cleanup
+
+   background task draining
+
+   start/stop verifiers
+
+5. Suppress internal errors
+
+   Your custom error handler covers it, but we can:
+
+   audit error envelope
+
+   ensure no tracebacks in ANY environment
+
+   sanitize any exception types not covered
+
+6. Security Headers (big upgrade)
+
+   Your current middleware likely needs:
+
+   Permissions-Policy
+
+   Referrer-Policy
+
+   Cross-Origin-Resource-Policy
+
+   Cross-Origin-Embedder-Policy
+
+   Cross-Origin-Opener-Policy
+
+   CSP skeleton (strict, no inline scripts)
+
+   This is the biggest remaining security layer.
+
+7. Timeouts (ASGI-level)
+
+   Protects against slowloris, partial body attacks, stuck clients.

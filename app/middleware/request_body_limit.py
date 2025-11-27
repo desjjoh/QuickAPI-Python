@@ -22,6 +22,22 @@ def format_bytes_as_mb(value: int) -> str:
     return f"{mb:.2f} MB"
 
 
+def format_bytes(value: int) -> str:
+    if value < 1024:
+        return f"{value} B"
+
+    kb = value / 1024
+    if kb < 1024:
+        return f"{kb:.2f} KB"
+
+    mb = kb / 1024
+    if mb < 1024:
+        return f"{mb:.2f} MB"
+
+    gb = mb / 1024
+    return f"{gb:.2f} GB"
+
+
 @dataclass(frozen=True)
 class BodyLimit:
     max_body_bytes: int = 1_048_576
@@ -131,7 +147,7 @@ class RequestBodyLimitASGIMiddleware:
         used = used or 0
 
         remaining: int = max(max_bytes - used, 0)
-        limit: str = format_bytes_as_mb(max_bytes)
+        limit: str = format_bytes(max_bytes)
 
         response = JSONResponse(
             status_code=413,
@@ -147,11 +163,3 @@ class RequestBodyLimitASGIMiddleware:
         )
 
         await response(scope, empty_receive, send)
-
-
-# TODO:
-
-# → X-Body-Limit-MB header
-# → X-Body-Remaining-MB header
-# → Auto-switch to KB if < 1MB
-# → Auto-switch to GB for huge limits (unlikely for your API)
