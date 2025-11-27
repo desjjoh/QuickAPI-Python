@@ -1,27 +1,16 @@
-from datetime import UTC, datetime
-
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
+from app.models.error_model import error_response
 
 
 async def http_exception_handler(
     request: Request,
     exc: StarletteHTTPException,
 ) -> JSONResponse:
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "status": exc.status_code,
-            "message": exc.detail,
-            "timestamp": _now(),
-        },
-    )
+    return error_response(status=exc.status_code, message=exc.detail)
 
 
 async def validation_exception_handler(
@@ -46,19 +35,13 @@ async def validation_exception_handler(
 
         if field_path:
             parts.append(f"{field_path} → {msg}")
+
         else:
             parts.append(msg)
 
     message: str = "Validation failed: " + "; ".join(parts) + '.'
 
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "status": status_code,
-            "message": message,
-            "timestamp": _now(),
-        },
-    )
+    return error_response(status=status_code, message=message)
 
 
 async def unhandled_exception_handler(
@@ -67,11 +50,4 @@ async def unhandled_exception_handler(
 ) -> JSONResponse:
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "status": status_code,
-            "message": "Internal server error.",
-            "timestamp": _now(),
-        },
-    )
+    return error_response(status=status_code, message="Internal server error.")

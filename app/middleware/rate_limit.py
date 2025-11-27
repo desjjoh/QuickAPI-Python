@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
+from fastapi import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.config.rate_limiter import RateLimiter
-
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
+from app.models.error_model import error_response
 
 
 def get_client_ip(request: Request) -> str:
@@ -38,13 +34,9 @@ class RateLimitASGIMiddleware:
         allowed: bool = self.limiter.allow(ip)
 
         if not allowed:
-            response = JSONResponse(
-                status_code=429,
-                content={
-                    "status": 429,
-                    "message": "Too many requests.",
-                    "timestamp": _now(),
-                },
+            response: JSONResponse = error_response(
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+                message="Too many requests.",
             )
 
             await response(scope, receive, send)

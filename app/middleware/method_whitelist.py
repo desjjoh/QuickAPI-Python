@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
-from starlette.responses import JSONResponse
+from fastapi import status
+from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
+from app.models.error_model import error_response
 
 
 class MethodWhitelistASGIMiddleware:
@@ -29,13 +26,9 @@ class MethodWhitelistASGIMiddleware:
         await self.app(scope, receive, send)
 
     async def _reject(self, scope: Scope, send: Send, method: str):
-        response = JSONResponse(
-            status_code=405,
-            content={
-                "status": 405,
-                "message": f"HTTP method '{method}' is not allowed on this server.",
-                "timestamp": _now(),
-            },
+        response: JSONResponse = error_response(
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+            message=f"HTTP method '{method}' is not allowed on this server.",
         )
 
         async def empty_receive() -> Message:

@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
-from starlette.responses import JSONResponse
+from fastapi import status
+from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
+from app.models.error_model import error_response
 
 
 class ContentTypeEnforcementASGIMiddleware:
@@ -48,7 +45,6 @@ class ContentTypeEnforcementASGIMiddleware:
                 return await self._reject(
                     scope,
                     send,
-                    content_type,
                     f"HTTP method '{method}' does not accept a request body.",
                 )
 
@@ -63,7 +59,6 @@ class ContentTypeEnforcementASGIMiddleware:
                 return await self._reject(
                     scope,
                     send,
-                    "<missing>",
                     "Missing Content-Type header.",
                 )
 
@@ -73,21 +68,15 @@ class ContentTypeEnforcementASGIMiddleware:
                 return await self._reject(
                     scope,
                     send,
-                    content_type,
                     f"Content-Type '{content_type}' is not allowed on this endpoint. "
                     f"Expected one of: {sorted(allowed)}.",
                 )
 
         await self.app(scope, receive, send)
 
-    async def _reject(self, scope: Scope, send: Send, content_type: str, message: str):
-        response = JSONResponse(
-            status_code=415,
-            content={
-                "status": 415,
-                "message": message,
-                "timestamp": _now(),
-            },
+    async def _reject(self, scope: Scope, send: Send, message: str):
+        response: JSONResponse = error_response(
+            status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, message=message
         )
 
         async def empty_receive() -> Message:

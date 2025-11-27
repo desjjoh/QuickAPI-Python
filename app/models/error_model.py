@@ -1,3 +1,6 @@
+from datetime import UTC, datetime
+
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 
@@ -10,6 +13,28 @@ class ErrorResponse(BaseModel):
         examples=["Application not ready."],
     )
 
-    timestamp: str = Field(
-        ..., description="ISO8601 timestamp", examples=["2025-08-14T12:00:00Z"]
+    timestamp: int = Field(
+        ...,
+        description="Unix timestamp in milliseconds.",
+        examples=[1_764_281_029],
+    )
+
+
+def error_response(
+    status: int,
+    message: str,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
+    ts_ms = int(datetime.now(UTC).timestamp() * 1000)
+
+    model = ErrorResponse(
+        status=status,
+        message=message,
+        timestamp=ts_ms,
+    )
+
+    return JSONResponse(
+        status_code=status,
+        content=model.model_dump(),
+        headers=headers or {},
     )

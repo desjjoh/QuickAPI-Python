@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from typing import ClassVar
 
+from fastapi import status
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
+from app.models.error_model import error_response
 
 
 class HeaderSanitizationASGIMiddleware:
@@ -80,12 +78,12 @@ class HeaderSanitizationASGIMiddleware:
 
             if name in self.BLOCKLIST:
                 return await self._reject(
-                    scope, send, name, f"Header '{name}' is not allowed."
+                    scope, send, f"Header '{name}' is not allowed."
                 )
 
             if name in seen:
                 return await self._reject(
-                    scope, send, name, f"Duplicate header '{name}' is not permitted."
+                    scope, send, f"Duplicate header '{name}' is not permitted."
                 )
 
             seen.add(name)
@@ -94,7 +92,6 @@ class HeaderSanitizationASGIMiddleware:
                 return await self._reject(
                     scope,
                     send,
-                    name,
                     f"Header name '{name}' contains invalid characters.",
                 )
 
@@ -102,7 +99,6 @@ class HeaderSanitizationASGIMiddleware:
                 return await self._reject(
                     scope,
                     send,
-                    name,
                     "Header value contains prohibited control characters.",
                 )
 
@@ -115,14 +111,10 @@ class HeaderSanitizationASGIMiddleware:
 
         await self.app(scope, receive, send)
 
-    async def _reject(self, scope: Scope, send: Send, header: str, message: str):
-        response = JSONResponse(
-            status_code=400,
-            content={
-                "status": 400,
-                "message": message,
-                "timestamp": _now(),
-            },
+    async def _reject(self, scope: Scope, send: Send, message: str):
+        response: JSONResponse = error_response(
+            status=status.HTTP_400_BAD_REQUEST,
+            message=message,
         )
 
         async def empty_receive() -> Message:

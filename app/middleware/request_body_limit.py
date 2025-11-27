@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
 
+from fastapi import status
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
+from app.models.error_model import error_response
 
 
 async def empty_receive() -> Message:
@@ -149,13 +147,9 @@ class RequestBodyLimitASGIMiddleware:
         remaining: int = max(max_bytes - used, 0)
         limit: str = format_bytes(max_bytes)
 
-        response = JSONResponse(
-            status_code=413,
-            content={
-                "status": 413,
-                "message": f"Request body exceeds maximum allowed size (limit = {limit}).",
-                "timestamp": _now(),
-            },
+        response: JSONResponse = error_response(
+            status=status.HTTP_413_CONTENT_TOO_LARGE,
+            message=f"Request body exceeds maximum allowed size (limit = {limit}).",
             headers={
                 "X-Body-Limit-Bytes": str(max_bytes),
                 "X-Body-Remaining-Bytes": str(remaining),
