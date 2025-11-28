@@ -28,9 +28,9 @@ def error_response(
     message: str,
     headers: dict[str, str] | None = None,
 ) -> JSONResponse:
-    ts_ms = int(datetime.now(UTC).timestamp() * 1000)
+    ts_ms: int = int(datetime.now(UTC).timestamp() * 1000)
 
-    model = ErrorResponse(
+    model: ErrorResponse = ErrorResponse(
         status=status,
         message=message,
         timestamp=ts_ms,
