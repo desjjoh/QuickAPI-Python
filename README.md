@@ -1,47 +1,62 @@
 # QuickAPI-FastAPI
 
-A lightweight, production-ready FastAPI template focused on clean architecture, observability, and graceful lifecycle management.
-
----
-
-## Project Structure
-
-```bash
-app/
-├─ api/
-│  ├─ health/                # Health & metrics endpoints
-│  │  ├─ models/
-│  │  │  └─ schemas.py
-│  │  └─ routes.py
-│  ├─ items/                 # CRUD example module
-│  │  ├─ models/
-│  │  │  ├─ db_models.py
-│  │  │  ├─ item.py
-│  │  │  └─ schemas.py
-│  │  └─ routes.py
-│
-├─ core/                     # Core infrastructure
-│  ├─ config.py              # Application configuration (pydantic settings)
-│  ├─ logging.py             # Structlog configuration with colorized output
-│  ├─ middleware.py          # Request logging & error handling middleware
-│
-├─ services/                 # Shared services (DB, caching, etc.)
-│  └─ db.py                  # Async SQLAlchemy engine and session manager
-│
-└─ main.py                   # Application entrypoint with graceful lifespan
-```
+A modular, production-grade FastAPI template designed for scalable backend services, strong security defaults, and consistent architectural patterns shared across the **QuickAPI** ecosystem (Express, NestJS, FastAPI).
 
 ---
 
 ## Features
 
-- **FastAPI** powered async API with modular route architecture
-- **SQLite** via async SQLAlchemy for persistence
-- **Structured logging** with contextual, colorized output
-- **Centralized error handling & middleware**
-- **Health & readiness routes** for observability
-- **Graceful startup/shutdown** via lifespan context
-- **Dockerized** with lightweight Uvicorn runtime and healthcheck
+- **Strict Pydantic validation** for configuration, requests, and responses
+- **ASGI middleware suite**: header sanitization, security headers, body size limiting, rate limiting, request context, structured logging
+- **Prometheus metrics** with protected `/metrics` endpoint
+- **Unified error model** replacing default FastAPI 422 responses
+- **Structured logging** using `structlog` with colored, contextual logs
+- **OpenAPI documentation** with corrected schemas and custom error responses
+- **Graceful shutdown** via FastAPI lifespan context
+- **Modular folder structure** optimized for large-scale APIs
+- **CORS + CSP** with strict production defaults
+- **Developer‑friendly architecture** inspired by Express & NestJS templates
+
+---
+
+## Folder Structure
+
+```bash
+app/
+├── config/                # Environment configuration (Pydantic settings)
+├── controllers/           # High-level request orchestration (optional)
+├── database/
+│   ├── entities/          # ORM models (future)
+│   └── repositories/      # Database abstraction layer
+├── docs/                  # OpenAPI utilities & schema customization
+├── handlers/              # Process-level handlers (signals, shutdown helpers)
+├── middleware/            # All ASGI middleware (security, logging, rate limiting)
+├── models/                # Pydantic schemas (ErrorModel, domain models, etc.)
+├── routes/                # Router modules, metrics, system endpoints
+├── store/                 # Request-scoped state (contextvars-backed)
+└── main.py                # Application factory + middleware wiring
+```
+
+---
+
+## Environment Variables (`.env`)
+
+```bash
+APP_NAME=QuickAPI
+APP_VERSION=1.0.0
+
+ENV=development
+LOG_LEVEL=DEBUG
+
+HOST=0.0.0.0
+PORT=5000
+
+DATABASE_URL=sqlite:///./dev.db
+METRICS_API_KEY=dev-metrics
+```
+
+All values are validated on startup.
+If validation fails, the application prints a clear diagnostic report and exits safely.
 
 ---
 
@@ -50,85 +65,107 @@ app/
 ### Local Development
 
 ```bash
-# Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Run FastAPI app
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:create_app --factory --reload --port 5000
 ```
 
-### Dockerized Environment
+### Swagger & ReDoc
 
 ```bash
-docker compose up --build
+http://localhost:5000/docs
+http://localhost:5000/redoc
 ```
 
-The API will be available at
-**<http://localhost:8000>**
+### Prometheus Metrics
 
-Swagger documentation:
-**<http://localhost:8000/docs>**
-
----
-
-## Health & Monitoring
-
-| Endpoint        | Description                            |
-| --------------- | -------------------------------------- |
-| `/health/alive` | Verifies the service is reachable      |
-| `/health/ready` | Confirms DB connectivity and readiness |
-
----
-
-## Environment Variables
-
-| Variable       | Default                        | Description                            |
-| -------------- | ------------------------------ | -------------------------------------- |
-| `APP_NAME`     | `QuickAPI`                     | Application name for logging context   |
-| `DEBUG`        | `false`                        | Enables development logging and reload |
-| `DATABASE_URL` | `sqlite+aiosqlite:///./app.db` | Connection string for database         |
-
----
-
-## Docker Compose Overview
-
-```yaml
-services:
-  api:
-    image: quickapi-fastapi:latest
-    container_name: quickapi-fastapi
-    build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./app.db:/app/app.db
-    environment:
-      APP_NAME: QuickAPI
-      DEBUG: "false"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
+```bash
+http://localhost:5000/metrics
 ```
+
+---
+
+## Observability
+
+### Logging
+
+- colorized structured logs
+- contextual `request_id`
+- mute noisy framework logs
+- environment-controlled log level
+
+### Metrics
+
+Prometheus middleware emits:
+
+- request counts
+- request latency histogram
+- status code distribution
+
+Example metric:
+
+```bash
+http_requests_total{method="GET",path="/api/v1/items",status="200"} 42
+```
+
+---
+
+## Security Hardening
+
+### Header Sanitization
+
+Prevents:
+
+- header injection
+- smuggling vectors
+- duplicate headers
+- invalid characters
+
+Trims non-whitelisted headers while allowing standard browser headers (connection, keep-alive, etc.).
+
+### Body Size Limiting
+
+Rejects large requests (`413 Payload Too Large`) with custom error model.
+
+### Rate Limiting
+
+Burst + sustained limits with lightweight in‑memory store.
+
+### CORS & CSP
+
+Secure-by-default configurations mirroring Express/Nest templates.
+
+---
+
+## Unified Error Model
+
+All errors follow the same JSON envelope:
+
+```json
+{
+  "status": 400,
+  "message": "Missing required field: email",
+  "timestamp": 1764310185
+}
+```
+
+FastAPI’s 422 validation responses are fully overridden and documented in OpenAPI.
 
 ---
 
 ## Design Principles
 
-- **Fail-fast validation** using Pydantic schemas
-- **Observable behavior** through contextual, structured logs
-- **Graceful degradation** — clean startup, shutdown, and error boundaries
-- **Portable architecture** — swap SQLite for Postgres, Redis, etc. with minimal effort
+- **Fail-fast validation** at every layer
+- **Strict input sanitation**
+- **Deterministic behavior** across environments
+- **Predictable, platform-level architecture**
+- **Production-first mindset** (observability, errors, shutdown, metrics)
 
 ---
 
-## 🧾 License
+## License
 
-MIT © John Desjardins
+MIT License — Free for personal and commercial use.
+
+---
+
+QuickAPI-FastAPI — part of the **QuickAPI** ecosystem by **John Desjardins**.
