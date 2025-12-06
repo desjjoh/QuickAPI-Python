@@ -114,7 +114,7 @@ def create_app() -> FastAPI:
     app.add_middleware(HeaderSanitizationASGIMiddleware)
     app.add_middleware(
         ContentTypeEnforcementASGIMiddleware,
-        default_allowed={"application/json"},
+        default_allowed={"application/json", "multipart/form-data"},
         route_overrides=[],
     )
 
