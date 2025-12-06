@@ -71,16 +71,6 @@ class HeaderSanitizationASGIMiddleware:
         cleaned_headers: list[tuple[bytes, bytes]] = []
         seen: set[str] = set()
 
-        referer: str | None = None
-        for k, v in raw_headers:
-            if k.decode().lower() == "referer":
-                referer = v.decode().lower()
-                break
-
-        if referer and "/docs" in referer:
-            await self.app(scope, receive, send)
-            return
-
         for raw_name, raw_value in raw_headers:
             name = raw_name.decode().lower()
             value = raw_value.decode()
