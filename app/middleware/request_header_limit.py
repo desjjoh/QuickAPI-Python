@@ -12,8 +12,8 @@ from app.models.error_model import error_response
 @dataclass(frozen=True)
 class HeaderLimits:
     max_header_count: int = 100
-    max_single_header_bytes: int = 4096
-    max_total_header_bytes: int = 8192
+    max_single_header_bytes: int = 4_096
+    max_total_header_bytes: int = 8_192
     allow_chunked: bool = False
 
 

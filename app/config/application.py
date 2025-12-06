@@ -105,8 +105,8 @@ def create_app() -> FastAPI:
         RequestHeaderLimitASGIMiddleware,
         limits=HeaderLimits(
             max_header_count=100,
-            max_single_header_bytes=4096,
-            max_total_header_bytes=8192,
+            max_single_header_bytes=4_096,
+            max_total_header_bytes=8_192,
             allow_chunked=False,
         ),
     )

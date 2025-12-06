@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARN", "ERROR"] = "INFO"
 
     HOST: str = "0.0.0.0"
-    PORT: int = Field(..., ge=1, le=65535)
+    PORT: int = Field(..., ge=1, le=65_535)
 
     DATABASE_URL: str = Field(..., min_length=5)
 
