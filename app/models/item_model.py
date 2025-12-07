@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
 from pydantic_core import PydanticCustomError
 
 from app.models.base_model import BaseResponse
+from app.models.pagination import PaginationQuery
 
 
 class ItemBase(BaseModel):
@@ -77,5 +78,36 @@ class UpdateItemRequest(BaseModel):
             raise PydanticCustomError(
                 "empty_body", "At least one field must be provided"
             )
+
+        return self
+
+
+class ItemPaginationQuery(PaginationQuery):
+    sort_by: Literal["name", "price", "created_at"] = Field(
+        "price", description="Field to sort items by", examples=["price"]
+    )
+
+    direction: Literal["asc", "desc"] = Field(
+        "asc", description="Sort direction", examples=["asc"]
+    )
+
+    search: str | None = Field(
+        None,
+        description="Optional search term applied to item names",
+        examples=["sword"],
+    )
+
+    min_price: float | None = Field(
+        None, ge=0, description="Minimum price filter", examples=[50.00]
+    )
+    max_price: float | None = Field(
+        None, ge=0, description="Maximum price filter", examples=[100.00]
+    )
+
+    @model_validator(mode="after")
+    def validate_price_range(self):
+        if self.min_price is not None and self.max_price is not None:
+            if self.min_price > self.max_price:
+                raise ValueError("min_price cannot exceed max_price.")
 
         return self

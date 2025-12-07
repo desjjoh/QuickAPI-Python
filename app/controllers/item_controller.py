@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,9 +9,11 @@ from app.database.repositories.item_repo import repo
 from app.models.error_model import ErrorResponse
 from app.models.item_model import (
     ItemBase,
+    ItemPaginationQuery,
     ItemResponse,
     UpdateItemRequest,
 )
+from app.models.pagination import PaginatedResult
 from app.models.parameters_model import HexId
 
 router: APIRouter = APIRouter()
@@ -39,13 +40,20 @@ async def create(
     "/",
     summary="Get a list of items",
     description="Retrieves a paginated list of items. Supports page, limit, sorting, and optional filtering.",
-    response_model=list[ItemResponse],
+    response_model=PaginatedResult[ItemResponse],
     status_code=status.HTTP_200_OK,
 )
-async def get_all(db: AsyncSession = Depends(get_session)) -> list[ItemResponse]:
-    items: Sequence[ItemORM] = await repo.get_all(db)
+async def get_all(
+    query: ItemPaginationQuery = Depends(), db: AsyncSession = Depends(get_session)
+) -> PaginatedResult[ItemResponse]:
+    items, count = await repo.find_and_count(db, query)
 
-    return [ItemResponse.model_validate(item) for item in items]
+    return PaginatedResult[ItemResponse](
+        data=[ItemResponse.model_validate(item) for item in items],
+        total=count,
+        page=query.page,
+        limit=query.limit,
+    )
 
 
 ## GET /:id
