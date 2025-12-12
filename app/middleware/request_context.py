@@ -21,8 +21,10 @@ class RequestContextASGIMiddleware:
             return await self.app(scope, receive, send)
 
         request_id: str = uuid.uuid4().hex[:8]
+
         method = scope["method"]
         path = scope["path"]
+
         client = scope.get("client", ["unknown"])[0]
 
         structlog.contextvars.bind_contextvars(

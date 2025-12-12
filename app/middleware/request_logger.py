@@ -1,5 +1,5 @@
-# app/middleware/request_logger.py
 import time
+from typing import Literal
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -14,11 +14,11 @@ def shorten_path(path: str, max_len: int = 30) -> str:
 
 
 class RequestLoggingASGIMiddleware:
-    def __init__(self, app: ASGIApp):
+
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
-
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
@@ -52,10 +52,10 @@ class RequestLoggingASGIMiddleware:
 
             msg: str = f"{status_padded} {method_padded} {path_padded} {duration_s}"
 
-            level = (
+            level: Literal['error', 'warning', 'info'] = (
                 "error"
                 if status_code >= 500
-                else "warning" if status_code >= 400 else "debug"
+                else "warning" if status_code >= 400 else "info"
             )
 
             getattr(log, level)(msg)

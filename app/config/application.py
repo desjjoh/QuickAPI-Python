@@ -17,9 +17,8 @@ from app.handlers.exception_handler import (
     validation_exception_handler,
 )
 from app.handlers.lifecycle_handler import lifecycle
-from app.middleware.apply_cors import CORSConfig, apply_cors
 from app.middleware.content_type_enforcement import ContentTypeEnforcementASGIMiddleware
-from app.middleware.error_logger import ErrorLoggingASGIMiddleware
+from app.middleware.cors import CustomCORSASGIMiddleware
 from app.middleware.method_whitelist import MethodWhitelistASGIMiddleware
 from app.middleware.prometheus_metrics import PrometheusASGIMiddleware
 from app.middleware.rate_limit import RateLimitASGIMiddleware
@@ -86,6 +85,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(PrometheusASGIMiddleware)
     app.add_middleware(RequestTimeoutASGIMiddleware)
+
     app.add_middleware(
         RateLimitASGIMiddleware,
         limiter=RateLimiter(
@@ -124,13 +124,19 @@ def create_app() -> FastAPI:
         route_overrides=[],
     )
 
-    app.add_middleware(RequestContextASGIMiddleware)
-    app.add_middleware(ErrorLoggingASGIMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
-
-    apply_cors(app, CORSConfig(origins=['*']))
+    app.add_middleware(
+        CustomCORSASGIMiddleware,
+        origin=["http://localhost:3000"],
+        methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+        allowed_headers=["content-type", "authorization", "x-requested-with"],
+        exposed_headers=['authorization', 'set-cookie'],
+        credentials=True,
+        max_age=86_400,
+    )
 
     app.add_middleware(RequestLoggingASGIMiddleware)
+    app.add_middleware(RequestContextASGIMiddleware)
     app.add_middleware(RequestCleanupASGIMiddleware)
 
     app.exception_handler(RequestValidationError)(validation_exception_handler)

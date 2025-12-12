@@ -4,10 +4,16 @@ import re
 from typing import ClassVar
 
 from fastapi import status
-from starlette.responses import JSONResponse
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.models.error_model import error_response
+from app.handlers.exception_handler import http_exception_handler
+
+
+async def empty_receive() -> Message:
+    return {"type": "http.request", "body": b"", "more_body": False}
 
 
 class HeaderSanitizationASGIMiddleware:
@@ -61,12 +67,30 @@ class HeaderSanitizationASGIMiddleware:
         self.app = app
         self.allowed = self.ALLOWLIST | (extra_allowed or set())
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
         if scope["type"] != "http":
-            await self.app(scope, receive, send)
+            return await self.app(scope, receive, send)
 
-            return
+        try:
+            await self._run(scope, receive, send)
 
+        except HTTPException as exc:
+            request: Request = Request(scope, receive=receive)
+            response: JSONResponse = await http_exception_handler(request, exc)
+
+            await response(scope, empty_receive, send)
+
+    async def _run(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
         raw_headers = scope.get("headers", [])
         cleaned_headers: list[tuple[bytes, bytes]] = []
         seen: set[str] = set()
@@ -76,29 +100,29 @@ class HeaderSanitizationASGIMiddleware:
             value = raw_value.decode()
 
             if name in self.BLOCKLIST:
-                return await self._reject(
-                    scope, send, f"Header '{name}' is not allowed."
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Header '{name}' is not allowed.",
                 )
 
             if name in seen:
-                return await self._reject(
-                    scope, send, f"Duplicate header '{name}' is not permitted."
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Duplicate header '{name}' is not permitted.",
                 )
 
             seen.add(name)
 
             if not self.VALID_NAME_RE.match(name):
-                return await self._reject(
-                    scope,
-                    send,
-                    f"Header name '{name}' contains invalid characters.",
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Header name '{name}' contains invalid characters.",
                 )
 
             if any(c in value for c in self.INVALID_VALUE_CHARS):
-                return await self._reject(
-                    scope,
-                    send,
-                    "Header value contains prohibited control characters.",
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Header value contains prohibited control characters.",
                 )
 
             if name not in self.allowed:
@@ -109,14 +133,3 @@ class HeaderSanitizationASGIMiddleware:
         scope["headers"] = cleaned_headers
 
         await self.app(scope, receive, send)
-
-    async def _reject(self, scope: Scope, send: Send, message: str):
-        response: JSONResponse = error_response(
-            status=status.HTTP_400_BAD_REQUEST,
-            message=message,
-        )
-
-        async def empty_receive() -> Message:
-            return {"type": "http.request", "body": b"", "more_body": False}
-
-        await response(scope, empty_receive, send)

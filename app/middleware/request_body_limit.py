@@ -4,10 +4,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from fastapi import status
-from starlette.responses import JSONResponse
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.models.error_model import error_response
+from app.handlers.exception_handler import http_exception_handler
 
 
 async def empty_receive() -> Message:
@@ -42,13 +43,14 @@ class BodyLimit:
 
 
 class RequestBodyLimitASGIMiddleware:
+
     def __init__(
         self,
         app: ASGIApp,
         *,
         default_limit: BodyLimit,
         route_overrides: Sequence[tuple[str, BodyLimit]] | None = None,
-    ):
+    ) -> None:
         self.app = app
         self.default_limit = default_limit
         self.route_overrides = route_overrides or []
@@ -57,14 +59,33 @@ class RequestBodyLimitASGIMiddleware:
         for prefix, override in self.route_overrides:
             if path.startswith(prefix):
                 return override
-
         return self.default_limit
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+
         if scope["type"] != "http":
             await self.app(scope, receive, send)
-
             return
+
+        try:
+            await self._run(scope, receive, send)
+
+        except HTTPException as exc:
+            request = Request(scope, receive=receive)
+            response = await http_exception_handler(request, exc)
+            await response(scope, empty_receive, send)
+
+    async def _run(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
 
         path: str = scope.get("path", "/")
         limit: BodyLimit = self._select_limit(path)
@@ -78,10 +99,18 @@ class RequestBodyLimitASGIMiddleware:
                 declared: int = int(content_length)
 
             except ValueError:
-                return await self._reject(scope, send, max_bytes)
-
+                raise HTTPException(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    detail="Invalid Content-Length header.",
+                )
             if declared > max_bytes:
-                return await self._reject(scope, send, max_bytes, used=declared)
+                raise HTTPException(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    detail=(
+                        f"Request body exceeds maximum allowed size "
+                        f"(limit = {format_bytes(max_bytes)})."
+                    ),
+                )
 
         total: int = 0
         body_chunks: list[bytes] = []
@@ -99,9 +128,13 @@ class RequestBodyLimitASGIMiddleware:
                     total += chunk_len
 
                     if total > max_bytes:
-                        await self._reject(scope, send, max_bytes, used=total)
-
-                        return {"type": "http.disconnect"}
+                        raise HTTPException(
+                            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                            detail=(
+                                f"Request body exceeds maximum allowed size "
+                                f"(limit = {format_bytes(max_bytes)})."
+                            ),
+                        )
 
                     body_chunks.append(chunk)
 
@@ -115,45 +148,20 @@ class RequestBodyLimitASGIMiddleware:
                 body_chunks = []
 
                 return {"type": "http.request", "body": merged, "more_body": False}
-
             return await empty_receive()
+
+        scope["_body_replay"] = replay_body
 
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
                 remaining: int = max(max_bytes - total, 0)
-                headers = list(message.get("headers", []))
+                hdrs = list(message.get("headers", []))
 
-                headers.append((b"x-body-limit-bytes", str(max_bytes).encode()))
-                headers.append((b"x-body-remaining-bytes", str(remaining).encode()))
+                hdrs.append((b"x-body-limit-bytes", str(max_bytes).encode()))
+                hdrs.append((b"x-body-remaining-bytes", str(remaining).encode()))
 
-                message["headers"] = headers
+                message["headers"] = hdrs
 
             await send(message)
 
-        result: None = await self.app(scope, limited_receive, send_wrapper)
-        scope["_body_replay"] = replay_body
-
-        return result
-
-    async def _reject(
-        self,
-        scope: Scope,
-        send: Send,
-        max_bytes: int,
-        used: int | None = None,
-    ):
-        used = used or 0
-
-        remaining: int = max(max_bytes - used, 0)
-        limit: str = format_bytes(max_bytes)
-
-        response: JSONResponse = error_response(
-            status=status.HTTP_413_CONTENT_TOO_LARGE,
-            message=f"Request body exceeds maximum allowed size (limit = {limit}).",
-            headers={
-                "X-Body-Limit-Bytes": str(max_bytes),
-                "X-Body-Remaining-Bytes": str(remaining),
-            },
-        )
-
-        await response(scope, empty_receive, send)
+        await self.app(scope, limited_receive, send_wrapper)

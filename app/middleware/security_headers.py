@@ -6,8 +6,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class SecurityHeadersMiddleware:
-
-    def __init__(self, app: ASGIApp):
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
         self.headers: Iterable[tuple[bytes, bytes]] = [
@@ -33,11 +32,9 @@ class SecurityHeadersMiddleware:
             ),
         ]
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
-            await self.app(scope, receive, send)
-
-            return
+            return await self.app(scope, receive, send)
 
         path = scope.get("path", "")
         if path.startswith(("/docs", "/redoc", "/openapi.json")):

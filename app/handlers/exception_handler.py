@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.config.logging import log
 from app.models.error_model import error_response
 
 
@@ -10,6 +11,8 @@ async def http_exception_handler(
     request: Request,
     exc: StarletteHTTPException,
 ) -> JSONResponse:
+
+    log.error(exc.detail)
     return error_response(status=exc.status_code, message=exc.detail)
 
 
@@ -24,13 +27,7 @@ async def validation_exception_handler(
         loc = error["loc"]
         msg: str = error["msg"]
 
-        if loc == ("body",) or (
-            len(loc) == 2 and loc[0] == "body" and isinstance(loc[1], (int, str))
-        ):
-            parts.append(f"Request body → {msg}")
-            continue
-
-        loc_parts: list[str] = [str(p) for p in loc if p not in ("body", None, "", ())]
+        loc_parts: list[str] = [str(p) for p in loc]
         field_path: str = ".".join(loc_parts)
 
         if field_path:
@@ -41,6 +38,7 @@ async def validation_exception_handler(
 
     message: str = "Validation failed: " + "; ".join(parts) + '.'
 
+    log.error(message)
     return error_response(status=status_code, message=message)
 
 
@@ -48,6 +46,8 @@ async def unhandled_exception_handler(
     request: Request,
     exc: Exception,
 ) -> JSONResponse:
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR
+    message: str = "Internal server error."
 
-    return error_response(status=status_code, message="Internal server error.")
+    log.error(message)
+    return error_response(status=status_code, message=message)

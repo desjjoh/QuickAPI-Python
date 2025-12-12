@@ -8,10 +8,11 @@ from app.config.metrics import REQUEST_COUNT, REQUEST_LATENCY
 
 
 class PrometheusASGIMiddleware:
-    def __init__(self, app: ASGIApp):
+
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
