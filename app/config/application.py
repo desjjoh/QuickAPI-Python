@@ -51,7 +51,7 @@ async def lifespan(_: FastAPI):
         await lifecycle.startup()
 
         port: int = settings.PORT
-        log.info(f"HTTP server running on port {port} — http://localhost:{port}/docs")
+        log.info(f"HTTP server running on port {port} — http://localhost:{port}")
 
         yield
 

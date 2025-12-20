@@ -1,4 +1,6 @@
 import logging
+import os
+import socket
 from typing import Any, Protocol, cast, runtime_checkable
 
 import structlog
@@ -24,6 +26,17 @@ LOG_LEVEL_MAP: dict[str, int] = {
 
 dark_green = '\x1b[2m\x1b[32m'
 reset: str = Style.RESET_ALL
+
+
+def add_process_context(
+    _: WrappedLogger,
+    __: str,
+    event_dict: EventDict,
+) -> EventDict:
+    event_dict["pid"] = os.getpid()
+    event_dict["hostname"] = socket.gethostname()
+
+    return event_dict
 
 
 @runtime_checkable
@@ -54,10 +67,16 @@ def concise_renderer(_: WrappedLogger, __: str, event_dict: EventDict) -> str:
     level = event_dict.pop("level", "")
     message = event_dict.pop("event", "")
     request_id = event_dict.pop("request_id", None)
+    pid = event_dict.pop("pid", None)
+
+    line: str = f"{dark_green}{timestamp}{reset}"
+
+    if pid:
+        line += f" {Fore.CYAN}[{pid}]{reset}"
 
     color: str = colors.get(level.upper(), Fore.WHITE)
 
-    line: str = f"{dark_green}{timestamp}{reset} {color}[{level.ljust(8)}]{reset}"
+    line += f" {color}[{level.ljust(8)}]{reset}"
 
     if request_id:
         line += f" {Fore.MAGENTA}[{request_id}]{reset}"
@@ -70,6 +89,7 @@ def concise_renderer(_: WrappedLogger, __: str, event_dict: EventDict) -> str:
 structlog.configure(
     processors=[
         structlog.contextvars.merge_contextvars,
+        add_process_context,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S.%f", utc=False),
         concise_renderer,
